@@ -1,0 +1,29 @@
+{
+  "name": "forward-my-hole-client",
+  "version": "1.0.0",
+  "description": "forward-my-hole-clients connect through ws and DNS queries are forwarded to them",
+  "keywords": [
+    "pihole"
+  ],
+  "homepage": "https://github.com/CubeBeveled/forward-my-hole#readme",
+  "bugs": {
+    "url": "https://github.com/CubeBeveled/forward-my-hole/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CubeBeveled/forward-my-hole.git"
+  },
+  "license": "ISC",
+  "author": "Beveled Cube",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "dependencies": {
+    "dns2": "^2.1.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "ws": "^8.18.1"
+  }
+}
