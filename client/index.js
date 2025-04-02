@@ -59,17 +59,18 @@ function connectToHub() {
 
 function resolve(domain) {
   return new Promise((resolve, reject) => {
+    
     dns.setServers([process.env.PIHOLE_ADDRESS]);
 
     dns.resolve4(domain, (err, addresses) => {
       if (err) {
-        console.log(`Error: Pihole did not respond. Using fallback (${dns.setServers([process.env.PIHOLE_ADDRESS])})`);
+        console.log(color.yellow(`Error: Pihole did not respond. Using fallback (${color.white(process.env.FALLBACK_DNS)})`));
 
         dns.setServers([process.env.FALLBACK_DNS]);
 
         dns.resolve4(domain, (err, addresses) => {
           if (err) {
-            console.log("Error: Fallback DNS failed:", err);
+            console.log(color.red("Error: Fallback DNS failed:"), err);
 
             resolve(null);
           } else resolve(addresses);
