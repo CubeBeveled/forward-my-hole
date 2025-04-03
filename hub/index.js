@@ -24,7 +24,7 @@ const debug = false;
 
 startWS();
 startDoUDP();
-startDoT();
+//startDoT();
 
 async function startWS() {
   const server = require("http").createServer(express);
