@@ -52,18 +52,6 @@ async function startWS() {
   server.listen(process.env.WSS_PORT, () => console.log(color.green(`WSS is running on port ${color.white(process.env.WSS_PORT)}`)));
 }
 
-const msgCallback = (msg) => {
-  const data = JSON.parse(msg);
-
-  if (data.domain == question.name) {
-    response.answers = data.resolved.answers;
-    globalWS.removeListener("message", msgCallback);
-
-    if (debug) console.log("Out:", request);
-    send(response);
-  }
-};
-
 const handleQuery = (request, send) => {
   let response = dns2.Packet.createResponseFromRequest(request);
 
@@ -73,6 +61,19 @@ const handleQuery = (request, send) => {
   }
 
   const question = request.questions[0]
+
+  const msgCallback = (msg) => {
+    const data = JSON.parse(msg);
+
+    if (data.domain == question.name) {
+      response.answers = data.resolved.answers;
+      globalWS.removeListener("message", msgCallback);
+
+      if (debug) console.log("Out:", request);
+      send(response);
+    }
+  };
+
   const cacheResponse = cache.get(question.name);
   if (cacheResponse == null) {
     globalWS.send(JSON.stringify(question));
