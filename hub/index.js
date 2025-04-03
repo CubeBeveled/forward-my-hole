@@ -17,8 +17,9 @@ class BoundedMap extends Map {
   }
 }
 
-let globalWS;
 let cache = new BoundedMap(process.env.CACHE_SIZE | 20);
+let globalWS;
+const debug = false;
 
 startWS();
 startDNS();
@@ -54,6 +55,8 @@ async function startDNS() {
     udp: true,
     handle: (request, send, rinfo) => {
       const start = Date.now();
+      let cachedResponse = false;
+
       let response = dns2.Packet.createResponseFromRequest(request);
 
       if (!globalWS) {
@@ -68,12 +71,11 @@ async function startDNS() {
           response.answers = data.resolved.answers;
           globalWS.removeListener("message", msgCallback);
 
-          console.log("Out:", request);
+          if (debug) console.log("Out:", request);
           send(response);
         }
       }
 
-      //console.log(request.questions)
       const question = request.questions[0]
 
       const cacheResponse = cache.get(question.name);
@@ -84,6 +86,7 @@ async function startDNS() {
         response.answers = cacheResponse;
 
         send(response);
+        cacheResponse = true;
       }
 
       const end = Date.now();
@@ -91,12 +94,12 @@ async function startDNS() {
       cache.set(question.name, response.answers);
 
       //console.log(color.green(`Resolved ${request.questions.map((q) => q.name).join(", ")} (${color.white(end - start)}ms)`)); // Uncomment this if you want domains in the logs
-      console.log(color.green(`Resolved in ${color.white(`${end - start}ms`)}`));
+      console.log(color.green(`Resolved in ${color.white(`${end - start}ms`)}${cache ? " (cache)" : ""}`));
     }
   });
 
   server.on("request", (request, response, rinfo) => {
-    console.log("In:", request);
+    if (debug) console.log("In:", request);
   });
 
   server.on("requestError", (error) => {

@@ -33,7 +33,7 @@ function connectToHub() {
     try {
       resolved = await UDPClient({
         dns: process.env.PIHOLE_ADDRESS,
-      })(data.name, data.type, data.class);
+      })(data.name, numberToString(data.type), data.class);
 
       socket.send(JSON.stringify({ domain: data.name, resolved }));
     } catch (err) {
@@ -44,7 +44,8 @@ function connectToHub() {
 
     const end = Date.now();
 
-    console.log(color.green(`Resolved ${color.white(data.name)} -> ${color.white(resolved.answers)} (${color.white(`${end - start}ms`)})`));
+    if (resolved.answers.length == 1) console.log(color.green(`Resolved ${color.white(data.name)} -> ${color.white(resolved.answers[0].address)} (${color.white(`${end - start}ms`)})`))
+    else console.log(color.green(`Resolved ${color.white(data.name)} -> ${color.white(resolved.answers)} (${color.white(`${end - start}ms`)})`));
   });
 
   socket.on("error", (err) => {
@@ -66,13 +67,6 @@ function connectToHub() {
   });
 }
 
-// finish this function and
-// put this instead of data.type
-/*
-resolved = await UDPClient({
-        dns: process.env.PIHOLE_ADDRESS,
-      })(data.name, numberToString(data.type), data.class);
- */
 function numberToString(number) {
   const rawTypes = Object.entries({
     A: 0x01,
@@ -102,5 +96,8 @@ function numberToString(number) {
     CAA: 0x101
   });
 
-  const finalMap = new Map();
+  const map = new Map();
+  rawTypes.forEach((t) => map.set(t[1], t[0]));
+
+  return map.get(number);
 }
