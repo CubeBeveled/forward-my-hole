@@ -1,7 +1,8 @@
 const express = require("express")();
+const color = require("colors");
 const WebSocket = require("ws");
 const dns2 = require("dns2");
-const color = require("colors");
+const tls = require("tls");
 
 require("dotenv").config();
 class BoundedMap extends Map {
@@ -22,7 +23,8 @@ let globalWS;
 const debug = false;
 
 startWS();
-startDNS();
+startDoUDP();
+startDoT();
 
 async function startWS() {
   const server = require("http").createServer(express);
@@ -50,51 +52,50 @@ async function startWS() {
   server.listen(process.env.WSS_PORT, () => console.log(color.green(`WSS is running on port ${color.white(process.env.WSS_PORT)}`)));
 }
 
-async function startDNS() {
+const msgCallback = (msg) => {
+  const data = JSON.parse(msg);
+
+  if (data.domain == question.name) {
+    response.answers = data.resolved.answers;
+    globalWS.removeListener("message", msgCallback);
+
+    if (debug) console.log("Out:", request);
+    send(response);
+  }
+};
+
+const handleQuery = (request, send) => {
+  let response = dns2.Packet.createResponseFromRequest(request);
+
+  if (!globalWS) {
+    send(response);
+    return;
+  }
+
+  const question = request.questions[0]
+  const cacheResponse = cache.get(question.name);
+  if (cacheResponse == null) {
+    globalWS.send(JSON.stringify(question));
+    globalWS.on("message", msgCallback);
+  } else {
+    response.answers = cacheResponse;
+
+    send(response);
+  }
+
+  cache.set(question.name, response.answers);
+}
+
+function startDoUDP() {
   const server = dns2.createServer({
     udp: true,
     handle: (request, send, rinfo) => {
       const start = Date.now();
-      let cachedResponse = false;
-
-      let response = dns2.Packet.createResponseFromRequest(request);
-
-      if (!globalWS) {
-        send(response);
-        return;
-      }
-
-      const msgCallback = (msg) => {
-        const data = JSON.parse(msg);
-
-        if (data.domain == question.name) {
-          response.answers = data.resolved.answers;
-          globalWS.removeListener("message", msgCallback);
-
-          if (debug) console.log("Out:", request);
-          send(response);
-        }
-      }
-
-      const question = request.questions[0]
-
-      const cacheResponse = cache.get(question.name);
-      if (cacheResponse == null) {
-        globalWS.send(JSON.stringify(question));
-        globalWS.on("message", msgCallback);
-      } else {
-        response.answers = cacheResponse;
-
-        send(response);
-        cachedResponse = true;
-      }
-
+      handleQuery(request, send)
       const end = Date.now();
 
-      cache.set(question.name, response.answers);
-
       //console.log(color.green(`Resolved ${request.questions.map((q) => q.name).join(", ")} (${color.white(end - start)}ms)`)); // Uncomment this if you want domains in the logs
-      console.log(color.green(`Resolved in ${color.white(`${end - start}ms`)}${cachedResponse ? " (cache)" : ""}`));
+      console.log(color.green(`[UDP] Resolved in ${color.white(`${end - start}ms`)}`));
     }
   });
 
@@ -111,7 +112,7 @@ async function startDNS() {
   });
 
   server.on("listening", () => {
-    console.log(color.green("DNS server started on port"), process.env.DNS_PORT);
+    console.log(color.green("[UDP] DNS server started on port"), process.env.DNS_PORT);
   })
 
   server.listen({
@@ -122,3 +123,32 @@ async function startDNS() {
     },
   });
 }
+
+/*
+
+// Add these to .env
+//TLS_PORT=853
+//TLS_INTERFACE=""0.0.0.0""
+
+const options = {
+  key: fs.readFileSync("server.key"),
+  cert: fs.readFileSync("server.pem")
+};
+
+function startDoT() {
+  const tlsServer = tls.createServer(options, (socket) => {
+    socket.on("data", async (data) => {
+      const request = Packet.parse(data);
+
+      handleQuery(request, (response) => {
+        socket.write(Packet.write(response));
+        socket.end();
+      });
+    });
+  });
+
+  tlsServer.listen(853, process.env.TLS_INTERFACE, () => {
+    console.log(color.green("[TLS] DNS server started on port"), process.env.TLS_PORT);
+  });
+}
+*/
