@@ -86,7 +86,7 @@ async function startDNS() {
         response.answers = cacheResponse;
 
         send(response);
-        cacheResponse = true;
+        cachedResponse = true;
       }
 
       const end = Date.now();
@@ -94,7 +94,7 @@ async function startDNS() {
       cache.set(question.name, response.answers);
 
       //console.log(color.green(`Resolved ${request.questions.map((q) => q.name).join(", ")} (${color.white(end - start)}ms)`)); // Uncomment this if you want domains in the logs
-      console.log(color.green(`Resolved in ${color.white(`${end - start}ms`)}${cache ? " (cache)" : ""}`));
+      console.log(color.green(`Resolved in ${color.white(`${end - start}ms`)}${cachedResponse ? " (cache)" : ""}`));
     }
   });
 
