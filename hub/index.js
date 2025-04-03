@@ -117,7 +117,7 @@ async function startDNS() {
   server.listen({
     udp: {
       port: process.env.DNS_PORT,
-      address: "0.0.0.0",
+      address: process.env.DNS_INTERFACE,
       type: "udp4",
     },
   });
